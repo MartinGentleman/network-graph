@@ -1,25 +1,19 @@
-/* 
- * Animated floating graph nodes
- * 
- * Copyright (c) 2017 Project Nayuki
- * All rights reserved. Contact Nayuki for licensing.
- * https://www.nayuki.io/page/animated-floating-graph-nodes
- */
+// composePipe :: [(a -> b)] -> (a -> b)
+const pipe = (...fns) => fns.reduceRight ((f, g) => (...args) => f (g (...args)));
 
-"use strict";
+let idealNumNodes = 100; // 1 - 300, default 70
+let maxExtraEdges = 20; // 0 - 1000, default 20
+let radiiWeightPower = 0.5; // 0.0 mesh, 0.5 balanced, 1.0 Hub-and-Spoke, default 0.5
+let driftSpeed = 1; // 0 - 100, default 1
+let repulsionForce = 0.6; // 0 - 100, default 1
 
+const getNumberOfEdges = () => Math.round(maxExtraEdges / 100 * idealNumNodes);
 
-/*---- Configurable constants ----*/
+const BORDER_FADE = -0.02;
+const FADE_IN_RATE = 0.06;  // In the range (0.0, 1.0]
+const FADE_OUT_RATE = 0.03;  // In the range (0.0, 1.0]
+const FRAME_INTERVAL = 20000;  // In milliseconds, default 20
 
-var idealNumNodes = 10; // 1 - 300, default 70
-var maxExtraEdges = 20; // 0 - 1000, default 20
-var radiiWeightPower = 0.5; // 0.0 mesh, 0.5 balanced, 1.0 Hub-and-Spoke, default 0.5
-var driftSpeed = 1; // 0 - 100, default 1
-var repulsionForce = 1; // 0 - 100, default 1
-var BORDER_FADE = -0.02;
-var FADE_IN_RATE  = 0.06;  // In the range (0.0, 1.0]
-var FADE_OUT_RATE = 0.03;  // In the range (0.0, 1.0]
-var FRAME_INTERVAL = 20;  // In milliseconds
 
 
 /*---- Major functions ----*/
@@ -157,7 +151,8 @@ function updateNodes(relWidth, relHeight, nodes) {
 		newNodes.push({  // Random position and radius, other properties initially zero
 			posX: Math.random() * relWidth,
 			posY: Math.random() * relHeight,
-			radius: (Math.pow(Math.random(), 5) + 0.35) * 0.015,  // Skew toward smaller values
+            //radius: (Math.pow(Math.random(), 5) + 0.35) * 0.015,  // Skew toward smaller values
+            radius: (Math.pow(Math.random(), 5) + 0.95) * 0.005,  // Skew toward smaller values
 			velX: 0.0,
 			velY: 0.0,
 			opacity: 0.0,
@@ -253,7 +248,7 @@ function redrawOutput(svgElem, nodes, edges) {
 		circElem.setAttribute("cx", node.posX);
 		circElem.setAttribute("cy", node.posY);
 		circElem.setAttribute("r", node.radius);
-		circElem.setAttribute("fill", "rgba(129,139,197," + node.opacity.toFixed(3) + ")");
+		circElem.setAttribute("fill", "rgba(255, 222, 189," + node.opacity.toFixed(3) + ")");
 		gElem.appendChild(circElem);
 	});
 	
@@ -274,7 +269,7 @@ function redrawOutput(svgElem, nodes, edges) {
 			lineElem.setAttribute("y1", nodeA.posY - dy * nodeA.radius);
 			lineElem.setAttribute("x2", nodeB.posX + dx * nodeB.radius);
 			lineElem.setAttribute("y2", nodeB.posY + dy * nodeB.radius);
-			lineElem.setAttribute("stroke", "rgba(129,139,197," + opacity.toFixed(3) + ")");
+			lineElem.setAttribute("stroke", "rgba(255, 222, 189," + opacity.toFixed(3) + ")");
 			gElem.appendChild(lineElem);
 		}
 	});
