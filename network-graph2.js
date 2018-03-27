@@ -12,11 +12,7 @@ const getNumberOfEdges = () => Math.round(maxExtraEdges / 100 * idealNumNodes);
 const BORDER_FADE = -0.02;
 const FADE_IN_RATE = 0.06;  // In the range (0.0, 1.0]
 const FADE_OUT_RATE = 0.03;  // In the range (0.0, 1.0]
-const FRAME_INTERVAL = 20000;  // In milliseconds, default 20
-
-
-
-/*---- Major functions ----*/
+const FRAME_INTERVAL = 40000;  // In milliseconds, default 20
 
 initialize();  // Note: This line must come after all top-level global variables are declared
 
@@ -152,7 +148,8 @@ function updateNodes(relWidth, relHeight, nodes) {
 			posX: Math.random() * relWidth,
 			posY: Math.random() * relHeight,
             //radius: (Math.pow(Math.random(), 5) + 0.35) * 0.015,  // Skew toward smaller values
-            radius: (Math.pow(Math.random(), 5) + 0.95) * 0.005,  // Skew toward smaller values
+			//radius: (Math.pow(Math.random(), 5) + 0.95) * 0.005,  // Skew toward smaller values
+			radius: Math.random() * 0.002 + 0.004, // 0.004 - 0.006 Math.random() * (max - min) + min
 			velX: 0.0,
 			velY: 0.0,
 			opacity: 0.0,
