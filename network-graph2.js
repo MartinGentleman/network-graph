@@ -1,18 +1,24 @@
 // composePipe :: [(a -> b)] -> (a -> b)
 const pipe = (...fns) => fns.reduceRight ((f, g) => (...args) => f (g (...args)));
 
-let idealNumNodes = 100; // 1 - 300, default 70
-let maxExtraEdges = 20; // 0 - 1000, default 20
-let radiiWeightPower = 0.5; // 0.0 mesh, 0.5 balanced, 1.0 Hub-and-Spoke, default 0.5
-let driftSpeed = 1; // 0 - 100, default 1
-let repulsionForce = 0.6; // 0 - 100, default 1
+const configuration = {
+    idealNumNodes: 100, // 1 - 300, default 70
+    maxExtraEdges: 20, // 0 - 1000, default 20
+    radiiWeightPower: 0.5, // 0.0 mesh, 0.5 balanced, 1.0 Hub-and-Spoke, default 0.5
+    driftSpeed: 1, // 0 - 100, default 1
+    repulsionForce: 0.6 // 0 - 100, default 1
+};
 
-const getNumberOfEdges = () => Math.round(maxExtraEdges / 100 * idealNumNodes);
+const getIdealNumNodes = () => parseInt(configuration.idealNumNodes, 10);
+const getMaxExtraEdges = () => Math.round(parseFloat(configuration.idealNumNodes) / 100 * configuration.maxExtraEdges);
+const getRadiiWeightPower = () => parseFloat(configuration.radiiWeightPower);
+const getDriftSpeed = () => parseFloat(configuration.driftSpeed) * 0.0001;
+const getRepulsionForce = () =>  parseFloat(configuration.repulsionForce) * 0.000001;
 
 const BORDER_FADE = -0.02;
 const FADE_IN_RATE = 0.06;  // In the range (0.0, 1.0]
 const FADE_OUT_RATE = 0.03;  // In the range (0.0, 1.0]
-const FRAME_INTERVAL = 40000;  // In milliseconds, default 20
+const FRAME_INTERVAL = 40;  // In milliseconds, default 20
 
 initialize();  // Note: This line must come after all top-level global variables are declared
 
@@ -28,9 +34,7 @@ function initialize() {
 	svgElem.setAttribute("viewBox", "0 0 " + relWidth + " " + relHeight);
 	svgElem.querySelector("rect").setAttribute("x", (relWidth  - 1) / 2);
 	svgElem.querySelector("rect").setAttribute("y", (relHeight - 1) / 2);
-	
-	initInputHandlers();
-	
+
 	// Polyfill
 	if (!("hypot" in Math)) {
 		Math.hypot = function(x, y) {
@@ -77,46 +81,6 @@ function initialize() {
 	setInterval(stepFrame, FRAME_INTERVAL);
 }
 
-
-// Sets event handlers for form input elements, and sets global configuration variables.
-function initInputHandlers() {
-	var extraEdgesElem = document.getElementById("extra-edges");
-	extraEdgesElem.oninput = function() {
-		maxExtraEdges = Math.round(parseFloat(this.value) / 100 * idealNumNodes);
-	};
-	extraEdgesElem.oninput();
-	
-	var numNodesElem = document.getElementById("number-nodes");
-	numNodesElem.oninput = function() {
-		idealNumNodes = parseInt(this.value, 10);
-		maxExtraEdges = Math.round(parseFloat(extraEdgesElem.value) / 100 * idealNumNodes);
-	};
-	numNodesElem.oninput();
-	
-	var networkStyleElem = document.getElementById("network-style");
-	networkStyleElem.onchange = function() {
-		radiiWeightPower = parseFloat(this.value);
-	};
-	networkStyleElem.onchange();
-	
-	var driftSpeedElem = document.getElementById("drift-speed");
-	driftSpeedElem.oninput = function() {
-		var temp = parseFloat(this.value);
-		if (!isNaN(temp))
-			driftSpeed = temp * 0.0001;
-	};
-	driftSpeedElem.oninput();
-	
-	var repulsionForceElem = document.getElementById("repulsion-force");
-	repulsionForceElem.oninput = function() {
-		var temp = parseFloat(this.value);
-		if (!isNaN(temp))
-			repulsionForce = temp * 0.000001;
-	};
-	repulsionForceElem.oninput();
-}
-
-
 // Returns a new array of nodes by updating/adding/removing nodes based on the given array. Although the
 // argument array is not modified, the node objects themselves are modified. No other side effects.
 // At least one of relWidth or relHeight is exactly 1. The aspect ratio relWidth:relHeight is equal to w:h.
@@ -126,13 +90,13 @@ function updateNodes(relWidth, relHeight, nodes) {
 	var newNodes = [];
 	nodes.forEach(function(node, index) {
 		// Move based on velocity
-		node.posX += node.velX * driftSpeed;
-		node.posY += node.velY * driftSpeed;
+		node.posX += node.velX * getDriftSpeed ();
+		node.posY += node.velY * getDriftSpeed ();
 		// Randomly perturb velocity, with damping
 		node.velX = node.velX * 0.99 + (Math.random() - 0.5) * 0.3;
 		node.velY = node.velY * 0.99 + (Math.random() - 0.5) * 0.3;
 		// Fade out nodes near the borders of the space or exceeding the target number of nodes
-		if (index >= idealNumNodes || node.posX < BORDER_FADE || relWidth - node.posX < BORDER_FADE
+		if (index >= getIdealNumNodes () || node.posX < BORDER_FADE || relWidth - node.posX < BORDER_FADE
 				|| node.posY < BORDER_FADE || relHeight - node.posY < BORDER_FADE)
 			node.opacity = Math.max(node.opacity - FADE_OUT_RATE, 0);
 		else  // Fade in ones otherwise
@@ -143,7 +107,7 @@ function updateNodes(relWidth, relHeight, nodes) {
 	});
 	
 	// Add new nodes to fade in
-	for (var i = newNodes.length; i < idealNumNodes; i++) {
+	for (var i = newNodes.length; i < getIdealNumNodes (); i++) {
 		newNodes.push({  // Random position and radius, other properties initially zero
 			posX: Math.random() * relWidth,
 			posY: Math.random() * relHeight,
@@ -179,7 +143,7 @@ function doForceField(nodes) {
 			var distSqr = dx * dx + dy * dy;
 			// Notes: The factor 1/sqrt(distSqr) is to make (dx, dy) into a unit vector.
 			// 1/distSqr is the inverse square law, with a smoothing constant added to prevent singularity.
-			var factor = repulsionForce / (Math.sqrt(distSqr) * (distSqr + 0.00001));
+			var factor = getRepulsionForce () / (Math.sqrt(distSqr) * (distSqr + 0.00001));
 			dx *= factor;
 			dy *= factor;
 			deltas[i * 2 + 0] += dx;
@@ -202,7 +166,7 @@ function updateEdges(nodes, edges) {
 	// Calculate array of spanning tree edges, then add some extra low-weight edges
 	var allEdges = calcAllEdgeWeights(nodes);
 	var idealEdges = calcSpanningTree(allEdges, nodes);
-	for (var i = 0; i < allEdges.length && idealEdges.length < nodes.length - 1 + maxExtraEdges; i++) {
+	for (var i = 0; i < allEdges.length && idealEdges.length < nodes.length - 1 + getMaxExtraEdges (); i++) {
 		var edge = {nodeA:nodes[allEdges[i][1]], nodeB:nodes[allEdges[i][2]]};  // Convert data formats
 		if (!containsEdge(idealEdges, edge))
 			idealEdges.push(edge);
@@ -221,7 +185,7 @@ function updateEdges(nodes, edges) {
 	});
 	
 	// If there is room for new edges, add some missing spanning tree edges (higher priority), then extra edges
-	for (var i = 0; i < idealEdges.length && newEdges.length < nodes.length - 1 + maxExtraEdges; i++) {
+	for (var i = 0; i < idealEdges.length && newEdges.length < nodes.length - 1 + getMaxExtraEdges (); i++) {
 		var edge = idealEdges[i];
 		if (!containsEdge(newEdges, edge)) {
 			edge.opacity = 0.0;  // Add missing property
@@ -244,7 +208,7 @@ function redrawOutput(svgElem, nodes, edges) {
 		var circElem = document.createElementNS(svgElem.namespaceURI, "circle");
 		circElem.setAttribute("cx", node.posX);
 		circElem.setAttribute("cy", node.posY);
-		circElem.setAttribute("r", node.radius);
+        circElem.setAttribute("r", node.radius);
 		circElem.setAttribute("fill", "rgba(255, 222, 189," + node.opacity.toFixed(3) + ")");
 		gElem.appendChild(circElem);
 	});
@@ -284,7 +248,7 @@ function calcAllEdgeWeights(nodes) {
 		for (var j = 0; j < i; j++) {
 			var nodeB = nodes[j];
 			var weight = Math.hypot(nodeA.posX - nodeB.posX, nodeA.posY - nodeB.posY);  // Euclidean distance
-			weight /= Math.pow(nodeA.radius * nodeB.radius, radiiWeightPower);  // Give discount based on node radii
+			weight /= Math.pow(nodeA.radius * nodeB.radius, getRadiiWeightPower ());  // Give discount based on node radii
 			result.push([weight, i, j]);
 		}
 	}
